@@ -15,11 +15,21 @@ extern pros::Motor right_wheel_back;
 extern pros::Controller master;
 extern pros::Controller partner;
 
-// --------- makre sure we got IMU available ------------------------------
+// --------- make sure we got IMU available ------------------------------
 extern pros::Imu imu_sensor;
+
+// --------- shaft encoders drive train -----------------------------------
+extern pros::ADIEncoder encoderLeft;
+extern pros::ADIEncoder encoderRight;
 
 // ------------ Global accessible functions -------------------------------
 extern void robotDataLogger();
+
+extern void terminalLogger();     // terminal logger of OKAPI events
+extern bool usdLoggerOpen();
+extern void usdLoggerClose();
+extern std::ofstream myUsdFile;   // File stream variable
+extern bool usdLogEnable;         // If USD based file logging is active and allowed
 
 // ----------- Global variable to control drive base mode -----------------
 #define ARCADE_MODE false     // run in tankmode - if true arcade mode

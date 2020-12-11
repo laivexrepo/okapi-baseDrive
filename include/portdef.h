@@ -6,8 +6,8 @@
 #define LEFT_MOTOR_BACK  15
 
 //Drive base motors - right side of chassis
-#define RIGHT_MOTOR_FRONT  6
-#define RIGHT_MOTOR_BACK  16     
+#define RIGHT_MOTOR_FRONT  -6
+#define RIGHT_MOTOR_BACK  -16
 
 // ------------ GYRO / IMU --------------------------
 #define IMU_PORT 11
