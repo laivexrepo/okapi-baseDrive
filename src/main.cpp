@@ -101,7 +101,12 @@ void opcontrol() {
 	std::shared_ptr<okapi::OdomChassisController> chassis =
 	  okapi::ChassisControllerBuilder()
 	    .withMotors({LEFT_MOTOR_FRONT, LEFT_MOTOR_BACK}, {RIGHT_MOTOR_FRONT, RIGHT_MOTOR_BACK}) // left motor is 1, right motor is 2 (reversed)
-	    // green gearset, 4 inch wheel diameter, 15 inch wheelbase
+			.withGains(
+			        {0.001, 0, 0.0001}, // distance controller gains
+			        {0.001, 0, 0.0001}, // turn controller gains
+			        {0.001, 0, 0.0001}  // angle controller gains (helps drive straight)
+			    )
+			// green gearset, 4 inch wheel diameter, 15 inch wheelbase
 	    .withDimensions(okapi::AbstractMotor::gearset::green, {{4_in, 15_in}, okapi::imev5GreenTPR})
 	    // left encoder in ADI ports A & B, right encoder in ADI ports C & D (reversed)
 	    .withSensors(okapi::ADIEncoder{'C', 'D'}, okapi::ADIEncoder{'A', 'B'})
@@ -131,6 +136,7 @@ void opcontrol() {
 		if(usdLogEnable) { myUsdFile << pros::c::millis() << " Setting starting position of 0,0,0 \n"; }
 
 		chassis->setState({0_m, 0_m, 0_deg});
+		// for debugging purppose get encoder counts as well and show on console
 		std::cout << "Encoder LEFT value: " << encoderLeft.get_value() << " -- ";
 		std::cout << "Encoder RIGHT value: " << encoderRight.get_value() << "\n";
 
@@ -151,7 +157,7 @@ void opcontrol() {
 		std:: cout << "Drive 4ft straight forward \n";
     chassis->driveToPoint({1_m,0_m});
 
-		// for debugging purppose get encoder counts as well
+		// for debugging purppose get encoder counts as well and show on console
 		std::cout << "Encoder LEFT value: " << encoderLeft.get_value() << " -- ";
 		std::cout << "Encoder RIGHT value: " << encoderRight.get_value() << "\n";
 
@@ -166,12 +172,12 @@ void opcontrol() {
 		 	myUsdFile << std::to_string(y.convert(okapi::meter)) << " " << std::to_string(theta.convert(okapi::degree)) << "\n";
     }
 
-		// For testing purpose we are resetting Odometer frame to 0,0,0 to see if we get a nive 45degree turn
-		// at the end of the 1m move action
+		// For testing purpose we are resetting Odometer frame to 0,0,0 to see if we get a nice 45degree turn
+		// at the end of the 1m forward move action
 		std::cout << "Setting starting position of 0,0,0 \n";
 		chassis->setState({0_m, 0_m, 0_deg});
 
-		// for debugging purppose get encoder counts as well
+		// for debugging purppose get encoder counts as well and show on console
 		std::cout << "Encoder LEFT value: " << encoderLeft.get_value() << " -- ";
 		std::cout << "Encoder RIGHT value: " << encoderRight.get_value() << "\n";
 
@@ -179,7 +185,7 @@ void opcontrol() {
 		std::cout << "Setting 45degree pivot 1m, 1m \n";
 		chassis->driveToPoint({1_m, 1_m});
 
-		// for debugging purppose get encoder counts as well
+		// for debugging purppose get encoder counts as well and show on console
 		std::cout << "Encoder LEFT value: " << encoderLeft.get_value() << " -- ";
 		std::cout << "Encoder RIGHT value: " << encoderRight.get_value() << "\n";
 
@@ -200,7 +206,7 @@ void opcontrol() {
 
 	}
 
-	// Make sure that if we used USD file loggign, we close it before the program ends
+	// Make sure that if we used USD file logging, we close it before the program ends
   if (usdLogEnable) {
 		usdLoggerClose();
 		std::cout << "Closing USD file logger..........\n";

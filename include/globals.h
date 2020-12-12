@@ -26,8 +26,9 @@ extern pros::ADIEncoder encoderRight;
 extern void robotDataLogger();
 
 extern void terminalLogger();     // terminal logger of OKAPI events
-extern bool usdLoggerOpen();
-extern void usdLoggerClose();
+extern bool usdLoggerOpen();      // open a USD file logger
+extern void usdLoggerClose();     // if USD file logger used close it before exiting program
+
 extern std::ofstream myUsdFile;   // File stream variable
 extern bool usdLogEnable;         // If USD based file logging is active and allowed
 

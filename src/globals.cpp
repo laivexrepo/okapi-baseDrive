@@ -12,7 +12,7 @@
 
 #include <iostream>       // For file system support in C++ ability to write to file stream
 #include <fstream>
-#include <chrono>
+#include <chrono>         // for tiem support - NOTE V5 has no date/time support!
 #include <ctime>
 
 // --------------------- Global Motor Definitions ------------------------------
@@ -44,19 +44,27 @@ void robotDataLogger() {
 
 }
 
+// Log internal Odometry chassis builder data to the console for deep debugging
+// This should likely be not called in production code
 void terminalLogger() {
   // functions logs to console terminal
   okapi::Logger::setDefaultLogger(
 	    std::make_shared<okapi::Logger>(
 	        okapi::TimeUtilFactory::createDefault().getTimer(), // It needs a Timer
 	        "/ser/sout", // Output to the PROS terminal
-	        okapi::Logger::LogLevel::info // Show info, errors and warnings
+	        okapi::Logger::LogLevel::info // Show info, errors and warnings -- warn, debug, info
 	    )
 	);
 }
 
-std::ofstream myUsdFile;
-bool usdLogEnable = false;
+// Create an ability to log messages to the USD file system - useful for debugging autonomous routines
+// be recording robot positions with in the expected versus true odometer frame
+// It requires a FAT32 formatted SD card inserted, function will detect if card is present
+// Function returns a boolean -- true -- USD fiel writing is setup and available,
+//                               false -- No USD card present or other error opening file
+
+std::ofstream myUsdFile;        // file stream if USD card present and fiel is opened
+bool usdLogEnable = false;      // used to control writing to stream if USD card is available
 
 bool usdLoggerOpen() {
   // We are going to open a log file, but first we need to know if we have USD card installed
@@ -70,13 +78,13 @@ bool usdLoggerOpen() {
   	myUsdFile << "Opened USD file for write at: " << pros::c::millis() << "ms since system uptime. \n";
 
     return(true);
-  	//myUsdFile.close();
 	} else {
 		std::cout << "USD File system failed to open - either no card, wrong format or other error \n";
     return(false);
 	}
 }
 
+// function to close the logger file to USD card - shoudl be called before exiting program
 void usdLoggerClose() {
   myUsdFile.close();
 }
