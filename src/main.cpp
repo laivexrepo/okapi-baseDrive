@@ -101,11 +101,6 @@ void opcontrol() {
 	std::shared_ptr<okapi::OdomChassisController> chassis =
 	  okapi::ChassisControllerBuilder()
 	    .withMotors({LEFT_MOTOR_FRONT, LEFT_MOTOR_BACK}, {RIGHT_MOTOR_FRONT, RIGHT_MOTOR_BACK}) // left motor is 1, right motor is 2 (reversed)
-			.withGains(
-			        {0.001, 0, 0.0001}, // distance controller gains
-			        {0.001, 0, 0.0001}, // turn controller gains
-			        {0.001, 0, 0.0001}  // angle controller gains (helps drive straight)
-			    )
 			// green gearset, 4 inch wheel diameter, 15 inch wheelbase
 	    .withDimensions(okapi::AbstractMotor::gearset::green, {{4_in, 15_in}, okapi::imev5GreenTPR})
 	    // left encoder in ADI ports A & B, right encoder in ADI ports C & D (reversed)
