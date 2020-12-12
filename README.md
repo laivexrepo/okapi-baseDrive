@@ -1,9 +1,9 @@
 # okapi-baseDrive
 OkapiLib sample base drive bot with odometers
 
-Basic Chassis with two tracking wheels - usinign okapi chasis builider with odometer.  
+Basic Chassis with two tracking wheels - usining okapi chassis builider with odometer.  
 
-Program logs movmenets (getState) to the USD card when inserted for analysis after run. 
+Program logs movements (getState) to the USD card when inserted for analysis after run. 
 
 Sample USD File output:
 
