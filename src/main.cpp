@@ -7,14 +7,10 @@
 #include <fstream>
 
 // used for logging and tracking our verisons
-#define RUN_VARIABLE 1
-#define PROGRAM_VERSION "0.1 Aplpha"
-#define VERSION_DATE "11-12-2020"
+#define RUN_VARIABLE 11
+#define PROGRAM_VERSION "0.3 Alpha"
+#define VERSION_DATE "15-12-2020"
 
-// For reading the okapi oodometer states
-okapi::OdomState currentState;		// Odometer state return structure
-okapi::QLength x, y;							// Length {x}_unit format
-okapi::QAngle theta;							// Angle of turn in odometer frame
 
 // We are writing okapi lib based code make sure that the following in main.h is uncommented:
 // #include "okapi/api.hpp"
@@ -30,7 +26,14 @@ okapi::QAngle theta;							// Angle of turn in odometer frame
  * to keep execution time for this mode under a few seconds.
  */
 void initialize() {
-	terminalLogger();					// log OKAPI lib internal debug info to the console
+	std::cout << "Setting OKAPI log level \n";
+	okapi::Logger::setDefaultLogger(
+			std::make_shared<okapi::Logger>(
+					okapi::TimeUtilFactory::createDefault().getTimer(), // It needs a Timer
+					"/ser/sout", // Output to the PROS terminal
+					okapi::Logger::LogLevel::info // Show info, errors and warnings -- warn, debug, info
+			)
+	);
 }
 
 /**
@@ -81,130 +84,152 @@ void opcontrol() {
 
 	bool encoderTest = false;				// Temporary to facilitate tracking wheel testing
 
+	// For reading the okapi oodometer states
+	okapi::OdomState currentState;		// Odometer state return structure
+	okapi::QLength x, y;							// Length {x}_unit format
+	okapi::QAngle theta;							// Angle of turn in odometer frame
+
+  std::cout << "Attempting initialization of USD logger \n";
 	// Lets facilitate logging to the USD file system for a record of our movements
-	// if we are opeining a FIEL logger we must also ensure that we coloe it in the end
-	// usign the call to usdLoggerClose()
+	// if we are opeining a FILE logger we must also ensure that we coloe it in the end
+	// using the call to usdLoggerClose()
 	if(usdLoggerOpen()) {
 		usdLogEnable = true;					// Set a local flag indicating we cna log to the filesystem
+		std::cout << "USD logger setup succeeded and enabled\n";
 	}
-
 	if(usdLogEnable) {
 		myUsdFile << "Program Run: " << RUN_VARIABLE << " Program Version: " << PROGRAM_VERSION;
 		myUsdFile << " Version Date: " << VERSION_DATE << " \n";
 	}
 
-  std::cout << "Setting up odometer in Okapi Lib \n";
-
-  // build a chassis controller with odometer support
-	// Key to note: wheel base for driving wheels versus tracking wheel
-	// Aodomoter ADIencoders ports (top/bottom) and if reversed or not
-	std::shared_ptr<okapi::OdomChassisController> chassis =
-	  okapi::ChassisControllerBuilder()
-	    .withMotors({LEFT_MOTOR_FRONT, LEFT_MOTOR_BACK}, {RIGHT_MOTOR_FRONT, RIGHT_MOTOR_BACK}) // left motor is 1, right motor is 2 (reversed)
-			// green gearset, 4 inch wheel diameter, 15 inch wheelbase
-	    .withDimensions(okapi::AbstractMotor::gearset::green, {{4_in, 15_in}, okapi::imev5GreenTPR})
-	    // left encoder in ADI ports A & B, right encoder in ADI ports C & D (reversed)
-	    .withSensors(okapi::ADIEncoder{'C', 'D'}, okapi::ADIEncoder{'A', 'B'})
-	    // specify the tracking wheels diameter (2.75 in), track (9.75 in), and TPR (360)
-	    .withOdometry({{2.75_in, 9.75_in}, okapi::quadEncoderTPR}, okapi::StateMode::FRAME_TRANSFORMATION)
-	    .buildOdometry();
 
   // Now lets drive....
 	if(encoderTest) {
-    // temporary test mode, intended for pushing chassis nad seeing if trackign wheel encoders
+    // temporary test mode, intended for pushing chassis and seeing if tracking wheel encoders
 		// when robot is pushed forward are giving both postivie number increments.
 		while (true) {
-			std::cout << "Encoder LEFT value: " << encoderLeft.get_value() << " -- ";
-			std::cout << "Encoder RIGHT value: " << encoderRight.get_value() << "\n";
+			void reportEncoder();
 
       pros::delay(20);
 		}
 
 	} else {
+
+		std::cout << "Setting up odometer in Okapi Lib \n";
+
+		std::shared_ptr<okapi::OdomChassisController> chassis =
+			okapi::ChassisControllerBuilder()
+				.withMotors({LEFT_MOTOR_FRONT, LEFT_MOTOR_BACK}, {RIGHT_MOTOR_FRONT, RIGHT_MOTOR_BACK}) // left motor is 1, right motor is 2 (reversed)
+				// green gearset, 4 inch wheel diameter, 15 inch wheelbase
+				// METRIC: 0.1016m diameter -- 0.3750m wheel base
+				//.withDimensions(okapi::AbstractMotor::gearset::green, {{4_in, 15_in}, okapi::imev5GreenTPR})
+				.withDimensions(okapi::AbstractMotor::gearset::green, {{0.1016_m, 0.3750_m}, okapi::imev5GreenTPR})
+				// left encoder in ADI ports A & B, right encoder in ADI ports C & D (reversed)
+				.withSensors(okapi::ADIEncoder{'C', 'D'}, okapi::ADIEncoder{'A', 'B'})
+				// specify the tracking wheels diameter (2.75 in), track (9.75 in), and TPR (360)
+				// METRIC: 0.06985m diameter -- 0.2450m wheel base
+				//.withOdometry({{2.75_in, 9.75_in}, okapi::quadEncoderTPR}, okapi::StateMode::FRAME_TRANSFORMATION)
+				.withOdometry({{0.06985_m, 0.2450_m}, okapi::quadEncoderTPR}, okapi::StateMode::FRAME_TRANSFORMATION)
+				.buildOdometry();
+
 		// Set the chassis maximum velocity to 100 RPM (range is 0 - 600RPM)
 		std::cout << "Set the maximum velocity to: 100RPM \n";
-		if(usdLogEnable) { myUsdFile << pros::c::millis() << " Set the maximum velocity to: 100RPM \n"; }
+		if(usdLogEnable) { myUsdFile << pros::c::millis() << "\t Set the maximum velocity to: 100RPM \n"; }
     chassis->setMaxVelocity(100);
 
 		// set the state to zero
 		std::cout << "Setting starting position of 0,0,0 \n";
-		if(usdLogEnable) { myUsdFile << pros::c::millis() << " Setting starting position of 0,0,0 \n"; }
+		if(usdLogEnable) { myUsdFile << pros::c::millis() << "\t Setting starting position of 0,0,0 \n"; }
 
 		chassis->setState({0_m, 0_m, 0_deg});
 		// for debugging purppose get encoder counts as well and show on console
 		std::cout << "Encoder LEFT value: " << encoderLeft.get_value() << " -- ";
-		std::cout << "Encoder RIGHT value: " << encoderRight.get_value() << "\n";
+	  std::cout << "RIGHT value: " << encoderRight.get_value() << "\n";
 
 		currentState = chassis->getState();
-
-
-		x = currentState.x;								// forward direction
-		y = currentState.y;								// sideways direction
-		theta = currentState.theta;				// angle
-
-		std::cout << "Get state: " << std::to_string(x.convert(okapi::meter)) << " ";
-		std::cout << std::to_string(y.convert(okapi::meter)) << " " << std::to_string(theta.convert(okapi::degree)) << "\n";
-		if(usdLogEnable) { myUsdFile << pros::c::millis() << " Get state: " << std::to_string(x.convert(okapi::meter)) << " ";
-			myUsdFile << std::to_string(y.convert(okapi::meter)) << " " << std::to_string(theta.convert(okapi::degree)) << "\n";
+		std::cout << "Get state: " << std::to_string(currentState.x.convert(okapi::meter)) << " ";
+		std::cout << std::to_string(currentState.y.convert(okapi::meter)) << " " << std::to_string(currentState.theta.convert(okapi::degree)) << "\n";
+		if(usdLogEnable) { myUsdFile << pros::c::millis() << "\t Get state: " << std::to_string(currentState.x.convert(okapi::meter)) << "m ";
+			myUsdFile << std::to_string(currentState.y.convert(okapi::meter)) << "m " << std::to_string(currentState.theta.convert(okapi::degree)) << "Deg. \n";
+			myUsdFile << pros::c::millis() << "\t Encoder LEFT value: " << encoderLeft.get_value() << " -- ";
+			myUsdFile << "RIGHT value: " << encoderRight.get_value() << "\n";
 		}
 
     // drive to a point 1m in front of robot
-		std:: cout << "Drive 4ft straight forward \n";
+		std:: cout << "Drive 1m straight forward \n";
     chassis->driveToPoint({1_m,0_m});
 
 		// for debugging purppose get encoder counts as well and show on console
 		std::cout << "Encoder LEFT value: " << encoderLeft.get_value() << " -- ";
-		std::cout << "Encoder RIGHT value: " << encoderRight.get_value() << "\n";
+		std::cout << "RIGHT value: " << encoderRight.get_value() << "\n";
 
 		currentState = chassis->getState();
-		x = currentState.x;
-		y = currentState.y;
-		theta = currentState.theta;
-
-		std::cout << "Get state: " << std::to_string(x.convert(okapi::meter)) << " ";
-		std::cout << std::to_string(y.convert(okapi::meter)) << " " << std::to_string(theta.convert(okapi::degree)) << "\n";
-		if(usdLogEnable) { myUsdFile << pros::c::millis() << " Get state: " << std::to_string(x.convert(okapi::meter)) << " ";
-		 	myUsdFile << std::to_string(y.convert(okapi::meter)) << " " << std::to_string(theta.convert(okapi::degree)) << "\n";
-    }
+		std::cout << "Get state: " << std::to_string(currentState.x.convert(okapi::meter)) << " ";
+		std::cout << std::to_string(currentState.y.convert(okapi::meter)) << " " << std::to_string(currentState.theta.convert(okapi::degree)) << "\n";
+		if(usdLogEnable) { myUsdFile << pros::c::millis() << "\t Drive 1m straight forward \n";
+			myUsdFile << pros::c::millis() << "\t Get state: " << std::to_string(currentState.x.convert(okapi::meter)) << "m ";myUsdFile << std::to_string(currentState.y.convert(okapi::meter)) << "m " << std::to_string(currentState.theta.convert(okapi::degree)) << "Deg. \n";
+			myUsdFile << pros::c::millis() << "\t Encoder LEFT value: " << encoderLeft.get_value() << " -- ";
+			myUsdFile << "RIGHT value: " << encoderRight.get_value() << "\n";
+		}
 
 		// For testing purpose we are resetting Odometer frame to 0,0,0 to see if we get a nice 45degree turn
 		// at the end of the 1m forward move action
+
 		std::cout << "Setting starting position of 0,0,0 \n";
 		chassis->setState({0_m, 0_m, 0_deg});
 
 		// for debugging purppose get encoder counts as well and show on console
 		std::cout << "Encoder LEFT value: " << encoderLeft.get_value() << " -- ";
-		std::cout << "Encoder RIGHT value: " << encoderRight.get_value() << "\n";
+		std::cout << "RIGHT value: " << encoderRight.get_value() << "\n";
+
+		currentState = chassis->getState();
+		std::cout << "Get state: " << std::to_string(currentState.x.convert(okapi::meter)) << " ";
+		std::cout << std::to_string(currentState.y.convert(okapi::meter)) << " " << std::to_string(currentState.theta.convert(okapi::degree)) << "\n";
+		if(usdLogEnable) { myUsdFile << pros::c::millis() << "\t Get state: " << std::to_string(currentState.x.convert(okapi::meter)) << "m ";
+			myUsdFile << std::to_string(currentState.y.convert(okapi::meter)) << "m " << std::to_string(currentState.theta.convert(okapi::degree)) << "Deg. \n";
+			myUsdFile << pros::c::millis() << "\t Encoder LEFT value: " << encoderLeft.get_value() << " -- ";
+			myUsdFile << "RIGHT value: " << encoderRight.get_value() << "\n";
+		}
 
 		// turn 45 degrees and drive approximately 1.4m
 		std::cout << "Setting 45degree pivot 1m, 1m \n";
 		chassis->driveToPoint({1_m, 1_m});
 
+		currentState = chassis->getState();
 		// for debugging purppose get encoder counts as well and show on console
 		std::cout << "Encoder LEFT value: " << encoderLeft.get_value() << " -- ";
-		std::cout << "Encoder RIGHT value: " << encoderRight.get_value() << "\n";
+		std::cout << "RIGHT value: " << encoderRight.get_value() << "\n";
 
-    // Display the current state of robot within the odomoter frame
+		std::cout << "Get state: " << std::to_string(currentState.x.convert(okapi::meter)) << " ";
+		std::cout << std::to_string(currentState.y.convert(okapi::meter)) << " " << std::to_string(currentState.theta.convert(okapi::degree)) << "\n";
+		if(usdLogEnable) { myUsdFile << pros::c::millis() << "\t 45degree turn 1m,1m,0 \n";
+			myUsdFile << pros::c::millis() << "\t Get state: " << std::to_string(currentState.x.convert(okapi::meter)) << "m ";myUsdFile << std::to_string(currentState.y.convert(okapi::meter)) << "m " << std::to_string(currentState.theta.convert(okapi::degree)) << "Deg. \n";
+			myUsdFile << pros::c::millis() << "\t Encoder LEFT value: " << encoderLeft.get_value() << " -- ";
+			myUsdFile << "RIGHT value: " << encoderRight.get_value() << "\n";
+		}
+
+		// Face a 90 degree angle -- turning in place.
+		std::cout << "Turning to 90degree heading \n";
+		chassis->turnToAngle(90_deg);
+
+		// for debugging purppose get encoder counts as well and show on console
+		std::cout << "Encoder LEFT value: " << encoderLeft.get_value() << " -- ";
+		std::cout << "RIGHT value: " << encoderRight.get_value() << "\n";
+
 		currentState = chassis->getState();
-		x = currentState.x;
-		y = currentState.y;
-		theta = currentState.theta;
-
-		std::cout << "Get state: " << std::to_string(x.convert(okapi::meter)) << " ";
-		std::cout << std::to_string(y.convert(okapi::meter)) << " " << std::to_string(theta.convert(okapi::degree)) << "\n";
-
-    // Write to USD log file as well
-		if(usdLogEnable) { myUsdFile << pros::c::millis() << " Get state: " << std::to_string(x.convert(okapi::meter)) << " ";
-		 	myUsdFile << std::to_string(y.convert(okapi::meter)) << " " << std::to_string(theta.convert(okapi::degree)) << "\n";
-    }
-
-
-	}
+		std::cout << "Get state: " << std::to_string(currentState.x.convert(okapi::meter)) << " ";
+		std::cout << std::to_string(currentState.y.convert(okapi::meter)) << " " << std::to_string(currentState.theta.convert(okapi::degree)) << "\n";
+		if(usdLogEnable) { myUsdFile << pros::c::millis() << "\t Turning to 90degree heading \n";
+			myUsdFile << pros::c::millis() << "\t Get state: " << std::to_string(currentState.x.convert(okapi::meter)) << "m ";myUsdFile << std::to_string(currentState.y.convert(okapi::meter)) << "m " << std::to_string(currentState.theta.convert(okapi::degree)) << "Deg. \n";
+			myUsdFile << pros::c::millis() << "\t Encoder LEFT value: " << encoderLeft.get_value() << " -- ";
+			myUsdFile << "RIGHT value: " << encoderRight.get_value() << "\n";
+		}	}
 
 	// Make sure that if we used USD file logging, we close it before the program ends
   if (usdLogEnable) {
 		usdLoggerClose();
 		std::cout << "Closing USD file logger..........\n";
 	}
+
   std::cout << "Finished........\n";
 }

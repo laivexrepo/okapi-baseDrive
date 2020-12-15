@@ -15,6 +15,9 @@
 #include <chrono>         // for tiem support - NOTE V5 has no date/time support!
 #include <ctime>
 
+std::ofstream myUsdFile;        // file stream if USD card present and fiel is opened
+bool usdLogEnable = false;      // used to control writing to stream if USD card is available
+
 // --------------------- Global Motor Definitions ------------------------------
 
 pros::Motor left_wheel_front (LEFT_MOTOR_FRONT, MOTOR_GEARSET_18, false, pros::E_MOTOR_ENCODER_DEGREES);
@@ -35,7 +38,8 @@ pros::Imu imu_sensor(IMU_PORT);
 pros::ADIEncoder encoderLeft (QUAD_LEFT_TOP_PORT, QUAD_LEFT_BOTTOM_PORT);
 pros::ADIEncoder encoderRight (QUAD_RIGHT_TOP_PORT, QUAD_RIGHT_BOTTOM_PORT);
 
-// --------------------- Global Function definitions ---------------------------
+
+// --------------------- Global Logging Function definitions ---------------------------
 
 void robotDataLogger() {
   // This function can be called and will write an entry to the dataLogger file
@@ -44,27 +48,11 @@ void robotDataLogger() {
 
 }
 
-// Log internal Odometry chassis builder data to the console for deep debugging
-// This should likely be not called in production code
-void terminalLogger() {
-  // functions logs to console terminal
-  okapi::Logger::setDefaultLogger(
-	    std::make_shared<okapi::Logger>(
-	        okapi::TimeUtilFactory::createDefault().getTimer(), // It needs a Timer
-	        "/ser/sout", // Output to the PROS terminal
-	        okapi::Logger::LogLevel::info // Show info, errors and warnings -- warn, debug, info
-	    )
-	);
-}
-
 // Create an ability to log messages to the USD file system - useful for debugging autonomous routines
 // be recording robot positions with in the expected versus true odometer frame
 // It requires a FAT32 formatted SD card inserted, function will detect if card is present
 // Function returns a boolean -- true -- USD fiel writing is setup and available,
 //                               false -- No USD card present or other error opening file
-
-std::ofstream myUsdFile;        // file stream if USD card present and fiel is opened
-bool usdLogEnable = false;      // used to control writing to stream if USD card is available
 
 bool usdLoggerOpen() {
   // We are going to open a log file, but first we need to know if we have USD card installed

@@ -22,10 +22,10 @@ extern pros::Imu imu_sensor;
 extern pros::ADIEncoder encoderLeft;
 extern pros::ADIEncoder encoderRight;
 
-// ------------ Global accessible functions -------------------------------
+// ------------ Global accessible Logging functions -------------------------------
 extern void robotDataLogger();
 
-extern void terminalLogger();     // terminal logger of OKAPI events
+//extern void terminalLogger();     // terminal logger of OKAPI events
 extern bool usdLoggerOpen();      // open a USD file logger
 extern void usdLoggerClose();     // if USD file logger used close it before exiting program
 
