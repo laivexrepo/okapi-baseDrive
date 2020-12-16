@@ -108,7 +108,9 @@ void opcontrol() {
     // temporary test mode, intended for pushing chassis and seeing if tracking wheel encoders
 		// when robot is pushed forward are giving both postivie number increments.
 		while (true) {
-			void reportEncoder();
+			// for debugging purppose get encoder counts as well and show on console
+			std::cout << pros::c::millis() << "\t Encoder LEFT value: " << encoderLeft.get_value() << " -- ";
+		  std::cout << "RIGHT value: " << encoderRight.get_value() << "\n";
 
       pros::delay(20);
 		}
