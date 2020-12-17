@@ -6,7 +6,7 @@
 #include <iostream>
 #include <fstream>
 
-// used for logging and tracking our verisons
+// used for logging and tracking our versions
 #define RUN_VARIABLE 11
 #define PROGRAM_VERSION "0.3 Alpha"
 #define VERSION_DATE "15-12-2020"
