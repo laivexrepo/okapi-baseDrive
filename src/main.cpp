@@ -7,10 +7,25 @@
 #include <fstream>
 
 // used for logging and tracking our versions
-#define RUN_VARIABLE 11
-#define PROGRAM_VERSION "0.3 Alpha"
-#define VERSION_DATE "15-12-2020"
+#define RUN_VARIABLE 12
+#define PROGRAM_VERSION "0.4 Alpha"
+#define VERSION_DATE "07-02-2021"
 
+// ---------------- for serial port config -----------------------------------
+#include <iostream>
+#include <fstream>
+
+// Following is needed to setup/configure the cout/cin stream correclty via the
+// micro USB connector -- actual setup/config happens in initialize()
+// See pros/src/system/dev/ser_driver.c for definitions
+#define STDIN_STREAM_ID 0x706e6973   // 'sinp' little endian
+#define STDOUT_STREAM_ID 0x74756f73  // 'sout' little endian
+#define STDERR_STREAM_ID 0x72726573  // 'serr' little endian
+#define KDBG_STREAM_ID 0x6762646b    // 'kdbg' little endian
+
+int portID = STDOUT_STREAM_ID;			// what serial port are we going to set
+																		// options for?
+// ----------- END serial port config section --------------------------------
 
 // We are writing okapi lib based code make sure that the following in main.h is uncommented:
 // #include "okapi/api.hpp"
@@ -26,6 +41,15 @@
  * to keep execution time for this mode under a few seconds.
  */
 void initialize() {
+	// ------------------- serial config ----------------------------------------
+  // Setting up serial console through USB port for use with RPI Zero W radio
+	std::cout << "Before port reconfiguration \n";
+	std::cout << "portID " << &portID << "\n";
+	pros::c::serctl(SERCTL_DEACTIVATE, &portID);		// deactivate serr and sout
+																									// prefixes in the stream
+	pros::c::serctl(SERCTL_DISABLE_COBS, &portID);	// disable byte stuffing COBS
+  // --------------------- END serial config ----------------------------------
+
 	std::cout << "Setting OKAPI log level \n";
 	okapi::Logger::setDefaultLogger(
 			std::make_shared<okapi::Logger>(
